@@ -1,0 +1,87 @@
+======================================================================
+STEP 1: Loading the combined dataset
+======================================================================
+Loaded 20000 patient records, 36 columns.
+
+======================================================================
+STEP 2: Data Preprocessing
+======================================================================
+Missing values found across dataset: 0
+-> No missing values found; no imputation needed.
+Duplicate records found: 0
+All categorical variables (Gender, Address, Education, Occupation, Income, and every symptom) are already numerically coded per the study's data-coding sheet (e.g. Gender: 1=Male, 2=Female), so no additional text-to-number conversion is required.
+
+======================================================================
+STEP 3: Feature Engineering / Selection
+======================================================================
+Using 29 input features (demographics + signs/symptoms only):
+   Age, Gender, Address, Education, Occupation, Income, Paleness, Irritability, Fatigue, Tachycardia, Tongue, Spleen, Pica, SOB, EarNoise, Headache, BrittleNails, PoorSleep, Dizziness, ColdIntolerance, RLS, BlueSclera, AngularStomatitis, HairLoss, Dysphagia, DrySkin, Infections, Appetite, Bruising
+Lab test columns (Hb, SerumIron, TIBC, TSat, Ferritin) are EXCLUDED from inputs, per the study's aim of diagnosis without requiring a blood test.
+
+======================================================================
+STEP 4: Splitting into Train / Validation / Test sets
+======================================================================
+Training set  : 14000 records (70%) - used to train each model
+Validation set: 3000 records (15%) - used to compare/tune models
+Test set      : 3000 records (15%) - held back, used ONLY for the final report
+Numeric features were standardized (mean=0, std=1) for the SVM and Neural Network candidates, which are sensitive to feature scale. Tree-based models (Decision Tree, Random Forest) use the raw values, since they don't require scaling.
+
+======================================================================
+STEP 5: Model Selection - comparing candidate algorithms
+======================================================================
+  Decision Tree              -> Validation Accuracy: 0.9873 | Validation F1: 0.9874
+  Random Forest              -> Validation Accuracy: 0.9883 | Validation F1: 0.9885
+  Support Vector Machine     -> Validation Accuracy: 0.9840 | Validation F1: 0.9841
+  Neural Network (MLP)       -> Validation Accuracy: 0.9830 | Validation F1: 0.9831
+
+Best performing model on the validation set: Random Forest
+Saved model_comparison.png
+
+======================================================================
+STEP 6: Hyperparameter Tuning for Random Forest
+======================================================================
+Searching over: {'n_estimators': [200, 300], 'max_depth': [10, 12, 16]}
+Best hyperparameters found: {'max_depth': 16, 'n_estimators': 200}
+Best cross-validated F1 during search: 0.9917
+
+======================================================================
+STEP 7: 5-Fold Cross-Validation (robustness check)
+======================================================================
+5-fold CV accuracy scores: [np.float64(0.9938), np.float64(0.99), np.float64(0.9915), np.float64(0.9906), np.float64(0.9897)]
+Mean CV accuracy: 0.9911  (std: 0.0015)
+A low standard deviation across folds indicates the model performs consistently and is not just well-tuned to one particular data split.
+
+======================================================================
+STEP 8: Final Evaluation on the held-out Test set
+======================================================================
+Final model      : Random Forest
+Accuracy         : 0.9927
+Precision        : 0.9855
+Recall           : 1.0000
+F1-score         : 0.9927
+AUC-ROC          : 0.9994
+Confusion matrix:
+[[1478   22]
+ [   0 1500]]
+
+              precision    recall  f1-score   support
+
+      No IDA       1.00      0.99      0.99      1500
+         IDA       0.99      1.00      0.99      1500
+
+    accuracy                           0.99      3000
+   macro avg       0.99      0.99      0.99      3000
+weighted avg       0.99      0.99      0.99      3000
+
+
+======================================================================
+STEP 9: Explainability (Feature Importance + SHAP)
+======================================================================
+Saved feature_importance.png
+Computing SHAP values (this explains each prediction symptom-by-symptom)...
+Saved shap_summary.png
+
+======================================================================
+STEP 10: Saving the final model to disk
+======================================================================
+Saved ida_model.joblib, feature_list.joblib, scaler.joblib, model_meta.joblib
